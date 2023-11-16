@@ -1,6 +1,7 @@
 import functools
 import logging
 from typing import Callable, List, Optional, TypeVar, Union
+from urllib.parse import urlparse
 
 from flask import (
     current_app,
@@ -140,10 +141,16 @@ def has_access(f):
                 LOGMSG_ERR_SEC_ACCESS_DENIED, permission_str, self.__class__.__name__
             )
             flash(as_unicode(FLAMSG_ERR_SEC_ACCESS_DENIED), "danger")
+        forward_proto = request.headers.get("x-forwarded-proto")
+        next_url = request.url
+        if forward_proto and forward_proto != request.scheme:
+            parsed_uri = urlparse(next_url)
+            next_url = next_url.replace(parsed_uri.scheme, forward_proto)
+
         return redirect(
             url_for(
                 self.appbuilder.sm.auth_view.__class__.__name__ + ".login",
-                next=request.url,
+                next=next_url,
             )
         )
 
